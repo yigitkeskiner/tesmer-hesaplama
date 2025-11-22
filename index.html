@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TESMER Puan Hesaplama Pro - İstatistiksel Analiz Sistemi</title>
+    <meta name="description" content="TESMER SMMM Staja Giriş Sınavı için gelişmiş puan hesaplama, standart sapma analizi, z-score ve yüzdelik dilim hesaplayıcı">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-cyan: #00fff7;
+            --neon-pink: #ff006e;
+            --neon-purple: #8b5cf6;
+            --neon-orange: #ff6b35;
+            --neon-green: #39ff14;
+            --dark-bg: #0a0e27;
+            --darker-bg: #050817;
+            --card-bg: rgba(15, 23, 56, 0.85);
+            --text-primary: #ffffff;
+            --text-secondary: #b8c5db;
+            --text-accent: #00fff7;
+        }
+
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 247, 0.3), 0 0 40px rgba(0, 255, 247, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(0, 255, 247, 0.5), 0 0 80px rgba(0, 255, 247, 0.3); }
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, rgba(0, 255, 247, 0.03) 1px, transparent 1px),
+                linear-gradient(rgba(0, 255, 247, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: 0;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(0, 255, 247, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 20px;
+            border: 2px solid rgba(0, 255, 247, 0.3);
+            animation: fadeInScale 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 255, 247, 0.1) 0%, transparent 70%);
+            animation: float 10s ease-in-out infinite;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 50%, var(--neon-pink) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: relative;
+            z-index: 1;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-banner {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 2px solid rgba(0, 255, 247, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            animation: slideInLeft 0.6s ease-out;
+            animation-fill-mode: both;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 10px 30px rgba(0, 255, 247, 0.3);
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: var(--card-bg);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            animation: slideInRight 0.6s ease-out;
+            animation-fill-mode: both;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-icon {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .input-block {
+            position: relative;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .input-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-max {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .input-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-mini-label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--card-bg);
+            padding: 0 0.5rem;
+            font-size: 0.75rem;
+            color: var(--neon-cyan);
+            font-weight: 600;
+            z-index: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(5, 8, 23, 0.7);
+            border: 2px solid rgba(0, 255, 247, 0.3);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 247, 0.4);
+            transform: scale(1.02);
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
+            border: none;
+            border-radius: 15px;
+            color: var(--dark-bg);
+            font-size: 1.25rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .calculate-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+        }
+
+        .calculate-btn:hover::before {
+            left: 100%;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 255, 247, 0.5);
+        }
+
+        .results-section {
+            grid-column: 1 / -1;
+            display: none;
+            animation: fadeInScale 0.5s ease-out;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .score-display {
+            background: linear-gradient(135deg, rgba(0, 255, 247, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+            border: 3px solid var(--neon-cyan);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 247, 0.1), transparent);
+            animation: slideInRight 2s ease-in-out infinite;
+        }
+
+        .score-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 1rem;
+        }
+
+        .score-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .score-number.success {
+            background: linear-gradient(135deg, #39ff14 0%, #00ff00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 60px rgba(57, 255, 20, 0.5);
+        }
+
+        .score-number.warning {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score-number.danger {
+            background: linear-gradient(135deg, #ff006e 0%, #ff0054 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score-status {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .score-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 1.5rem;
+            border: 2px solid rgba(0, 255, 247, 0.3);
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
+            border-radius: 10px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 20px rgba(0, 255, 247, 0.6);
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .analytics-card {
+            background: rgba(5, 8, 23, 0.7);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analytics-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-pink));
+        }
+
+        .analytics-header {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .analytics-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .analytics-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .distribution-viz {
+            background: rgba(5, 8, 23, 0.7);
+            border: 2px solid rgba(0, 255, 247, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .bell-curve {
+            width: 100%;
+            height: 200px;
+            position: relative;
+            margin: 2rem 0;
+        }
+
+        .curve-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .marker {
+            position: absolute;
+            width: 4px;
+            background: var(--neon-pink);
+            bottom: 0;
+            box-shadow: 0 0 10px var(--neon-pink);
+            transition: all 0.5s ease;
+        }
+
+        .marker-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--neon-pink);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .breakdown-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .breakdown-item {
+            background: rgba(5, 8, 23, 0.5);
+            border-left: 4px solid var(--neon-cyan);
+            border-radius: 10px;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .breakdown-item:hover {
+            background: rgba(5, 8, 23, 0.8);
+            transform: translateX(5px);
+        }
+
+        .breakdown-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .breakdown-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .info-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--neon-orange);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        .info-list {
+            list-style: none;
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .info-item::before {
+            content: '▸';
+            color: var(--neon-orange);
+            font-weight: 700;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid rgba(0, 255, 247, 0.2);
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .score-number { font-size: 3.5rem; }
+            .main-grid { grid-template-columns: 1fr; }
+            .analytics-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <header>
+            <h1>TESMER PRO</h1>
+            <p class="subtitle">İstatistiksel Analiz Sistemi</p>
+        </header>
+
+        <div class="stats-banner">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-label">Toplam Soru</div>
+                <div class="stat-value">130</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-label">Başarı Barajı</div>
+                <div class="stat-value">60</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-label">Ortalama</div>
+                <div class="stat-value">50</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📉</div>
+                <div class="stat-label">Std. Sapma</div>
+                <div class="stat-value">10</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">📊</span>
+                    <h2 class="section-title">Sınav Girişi</h2>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-block">
+                        <div class="input-header">
+                            <span class="input-label">Alan Bilgisi</span>
+                            <span class="input-max">Max: 100</span>
+                        </div>
+                        <div class="input-controls">
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Doğru</span>
+                                <input type="number" id="alan-d" min="0" max="100" value="0">
+                            </div>
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Yanlış</span>
+                                <input type="number" id="alan-y" min="0" max="100" value="0">
+                            </div>
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Boş</span>
+                                <input type="number" id="alan-b" min="0" max="100" value="100" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-block">
+                        <div class="input-header">
+                            <span class="input-label">Genel Kültür</span>
+                            <span class="input-max">Max: 20</span>
+                        </div>
+                        <div class="input-controls">
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Doğru</span>
+                                <input type="number" id="gk-d" min="0" max="20" value="0">
+                            </div>
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Yanlış</span>
+                                <input type="number" id="gk-y" min="0" max="20" value="0">
+                            </div>
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Boş</span>
+                                <input type="number" id="gk-b" min="0" max="20" value="20" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-block">
+                        <div class="input-header">
+                            <span class="input-label">Yabancı Dil</span>
+                            <span class="input-max">Max: 10</span>
+                        </div>
+                        <div class="input-controls">
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Doğru</span>
+                                <input type="number" id="dil-d" min="0" max="10" value="0">
+                            </div>
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Yanlış</span>
+                                <input type="number" id="dil-y" min="0" max="10" value="0">
+                            </div>
+                            <div class="input-wrapper">
+                                <span class="input-mini-label">Boş</span>
+                                <input type="number" id="dil-b" min="0" max="10" value="10" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="calculate-btn" onclick="hesapla()">
+                    ⚡ ANALİZ BAŞLAT
+                </button>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">📚</span>
+                    <h2 class="section-title">Sistem Bilgisi</h2>
+                </div>
+
+                <div class="info-list" style="list-style: none;">
+                    <div class="info-item">
+                        <strong>Bağıl Değerlendirme:</strong> TESMER, normal dağılım (çan eğrisi) kullanır
+                    </div>
+                    <div class="info-item">
+                        <strong>Ortalama:</strong> Her bölüm 50 puana normalize edilir
+                    </div>
+                    <div class="info-item">
+                        <strong>Standart Sapma:</strong> σ = 10 (sabit)
+                    </div>
+                    <div class="info-item">
+                        <strong>Ağırlıklar:</strong> Alan %60, GK %33.33, Dil %6.67
+                    </div>
+                    <div class="info-item">
+                        <strong>Z-Score:</strong> (Puan - 50) / 10 formülü
+                    </div>
+                    <div class="info-item">
+                        <strong>Yüzdelik Dilim:</strong> Standart normal dağılım tablosundan
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section section" id="results">
+                <div class="score-display">
+                    <div class="score-label">TAHMİNİ PUANINIZ</div>
+                    <div class="score-number" id="final-score">0.00</div>
+                    <div class="score-status" id="status-text"></div>
+                    <div class="score-bar">
+                        <div class="score-bar-fill" id="score-bar"></div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <div class="analytics-header">📊 Z-Score</div>
+                        <div class="analytics-value" id="z-score">0.00</div>
+                        <div class="analytics-desc">Ortalamanın kaç standart sapma üzerinde/altında olduğunuzu gösterir</div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <div class="analytics-header">📈 Yüzdelik Dilim</div>
+                        <div class="analytics-value" id="percentile">0%</div>
+                        <div class="analytics-desc">Adayların yüzde kaçından daha iyi performans gösterdiğiniz</div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <div class="analytics-header">🎯 Başarı Olasılığı</div>
+                        <div class="analytics-value" id="success-prob">0%</div>
+                        <div class="analytics-desc">60+ puan alma olasılığınız (istatistiksel tahmin)</div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <div class="analytics-header">📊 Toplam Net</div>
+                        <div class="analytics-value" id="total-net">0.00</div>
+                        <div class="analytics-desc">Tüm bölümlerdeki net doğru sayınız</div>
+                    </div>
+                </div>
+
+                <div class="distribution-viz">
+                    <h3 style="font-family: 'Orbitron', sans-serif; margin-bottom: 1rem; color: var(--neon-cyan);">📉 NORMAL DAĞILIM GÖRSELİ</h3>
+                    <div class="bell-curve">
+                        <svg class="curve-line" viewBox="0 0 400 200" preserveAspectRatio="none">
+                            <path id="bell-path" fill="none" stroke="url(#gradient)" stroke-width="3"/>
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#00fff7;stop-opacity:1" />
+                                    <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#ff006e;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="marker" id="score-marker">
+                            <div class="marker-label" id="marker-label">SİZ</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary); margin-top: 2rem;">
+                        <span>0</span>
+                        <span style="color: var(--neon-cyan);">50 (Ortalama)</span>
+                        <span>100</span>
+                    </div>
+                </div>
+
+                <div class="breakdown-grid">
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">🎯 Alan Bilgisi Net</span>
+                        <span class="breakdown-value" id="alan-net">0.00</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">📚 Genel Kültür Net</span>
+                        <span class="breakdown-value" id="gk-net">0.00</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">🌍 Yabancı Dil Net</span>
+                        <span class="breakdown-value" id="dil-net">0.00</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">📊 Ağırlıklı Puan</span>
+                        <span class="breakdown-value" id="weighted-score">0.00</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-title">⚠️ ÖNEMLİ UYARI</div>
+                    <ul class="info-list">
+                        <li class="info-item">Bu hesaplama TAHMİNİ bir değerdir ve resmi sonuç değildir</li>
+                        <li class="info-item">Gerçek puanınız sınava giren TÜM adayların performansına göre hesaplanır</li>
+                        <li class="info-item">Her sınavda ortalama ve dağılım değiştiği için aynı net farklı puan verebilir</li>
+                        <li class="info-item">Bu araç geçmiş sınav istatistiklerine dayalı matematiksel bir projeksiyon sunar</li>
+                        <li class="info-item">Kesin sonuçlar için resmi TESMER açıklamalarını bekleyiniz</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p style="font-family: 'Orbitron', sans-serif; font-size: 1.1rem; margin-bottom: 0.5rem;">
+                TESMER PRO - İstatistiksel Analiz Sistemi
+            </p>
+            <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                Bu site TESMER ile resmi olarak ilişkili değildir | Geliştirici: Yiğit | 2025
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Particle effect
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 3 + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Auto-update empty fields
+        function updateBos(section, total) {
+            const dogru = parseInt(document.getElementById(`${section}-d`).value) || 0;
+            const yanlis = parseInt(document.getElementById(`${section}-y`).value) || 0;
+            const bos = total - dogru - yanlis;
+            document.getElementById(`${section}-b`).value = Math.max(0, bos);
+        }
+
+        ['alan-d', 'alan-y'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => updateBos('alan', 100));
+        });
+        ['gk-d', 'gk-y'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => updateBos('gk', 20));
+        });
+        ['dil-d', 'dil-y'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => updateBos('dil', 10));
+        });
+
+        // Draw bell curve
+        function drawBellCurve() {
+            const path = document.getElementById('bell-path');
+            let d = 'M 0 200';
+            for (let x = 0; x <= 400; x++) {
+                const normX = (x - 200) / 40;
+                const y = 200 - (180 * Math.exp(-0.5 * normX * normX));
+                d += ` L ${x} ${y}`;
+            }
+            path.setAttribute('d', d);
+        }
+        drawBellCurve();
+
+        // Z-score to percentile (approximate)
+        function zToPercentile(z) {
+            const t = 1 / (1 + 0.2316419 * Math.abs(z));
+            const d = 0.3989423 * Math.exp(-z * z / 2);
+            const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+            return z > 0 ? (1 - p) * 100 : p * 100;
+        }
+
+        function hesapla() {
+            // Get inputs
+            const alanD = parseInt(document.getElementById('alan-d').value) || 0;
+            const alanY = parseInt(document.getElementById('alan-y').value) || 0;
+            const gkD = parseInt(document.getElementById('gk-d').value) || 0;
+            const gkY = parseInt(document.getElementById('gk-y').value) || 0;
+            const dilD = parseInt(document.getElementById('dil-d').value) || 0;
+            const dilY = parseInt(document.getElementById('dil-y').value) || 0;
+
+            // Calculate nets (4 wrong = 1 right penalty)
+            const alanNet = alanD - (alanY / 4);
+            const gkNet = gkD - (gkY / 4);
+            const dilNet = dilD - (dilY / 4);
+            const totalNet = alanNet + gkNet + dilNet;
+
+            // Convert to standard scores (mean=50, sd=10)
+            // Assuming average performance: 60/100 alan, 12/20 gk, 5/10 dil
+            const alanStd = 50 + ((alanNet - 60) / 60) * 30;
+            const gkStd = 50 + ((gkNet - 12) / 12) * 30;
+            const dilStd = 50 + ((dilNet - 5) / 5) * 30;
+
+            // Weighted score
+            const weightedScore = (alanStd * 0.60) + (gkStd * 0.3333) + (dilStd * 0.0667);
+            const finalScore = Math.max(0, Math.min(100, weightedScore));
+
+            // Calculate Z-score
+            const zScore = (finalScore - 50) / 10;
+            
+            // Calculate percentile
+            const percentile = zToPercentile(zScore);
+
+            // Calculate success probability
+            const successProb = finalScore >= 60 ? 
+                Math.min(95, 50 + (finalScore - 60) * 2) : 
+                Math.max(5, finalScore * 0.8);
+
+            // Update displays
+            document.getElementById('final-score').textContent = finalScore.toFixed(2);
+            document.getElementById('z-score').textContent = zScore.toFixed(2);
+            document.getElementById('percentile').textContent = percentile.toFixed(1) + '%';
+            document.getElementById('success-prob').textContent = successProb.toFixed(0) + '%';
+            document.getElementById('total-net').textContent = totalNet.toFixed(2);
+            document.getElementById('alan-net').textContent = alanNet.toFixed(2);
+            document.getElementById('gk-net').textContent = gkNet.toFixed(2);
+            document.getElementById('dil-net').textContent = dilNet.toFixed(2);
+            document.getElementById('weighted-score').textContent = finalScore.toFixed(2);
+
+            // Update score bar
+            const bar = document.getElementById('score-bar');
+            bar.style.width = Math.min(100, finalScore) + '%';
+
+            // Update marker position on bell curve
+            const marker = document.getElementById('score-marker');
+            const markerPos = (finalScore / 100) * 100;
+            marker.style.left = markerPos + '%';
+            marker.style.height = (80 + (100 - Math.abs(finalScore - 50)) * 1.2) + 'px';
+
+            // Set status
+            const scoreNum = document.getElementById('final-score');
+            const statusText = document.getElementById('status-text');
+            
+            scoreNum.className = 'score-number';
+            if (finalScore >= 60) {
+                scoreNum.classList.add('success');
+                statusText.textContent = '🎉 BAŞARILI - TEBRİKLER!';
+                statusText.style.color = '#39ff14';
+            } else if (finalScore >= 50) {
+                scoreNum.classList.add('warning');
+                statusText.textContent = '⚠️ SINIRDA - DAHA FAZLA ÇALIŞ!';
+                statusText.style.color = '#ff6b35';
+            } else {
+                scoreNum.classList.add('danger');
+                statusText.textContent = '❌ BAŞARISIZ - ÇALIŞMAYA DEVAM!';
+                statusText.style.color = '#ff006e';
+            }
+
+            // Show results
+            document.getElementById('results').classList.add('show');
+            
+            // Smooth scroll
+            setTimeout(() => {
+                document.getElementById('results').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }, 100);
+        }
+
+        // Enter key to calculate
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') hesapla();
+        });
+    </script>
+</body>
+</html>
