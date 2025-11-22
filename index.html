@@ -949,29 +949,44 @@
             // Total correct answers (NO WRONG ANSWER PENALTY!)
             const totalNet = alanD + gkD + dilD;
 
-            // Calculate performance ratio for each section
-            // Using historical average: ~60% correct is average performance
-            const alanPerformance = alanD / 100;
-            const gkPerformance = gkD / 20;
-            const dilPerformance = dilD / 10;
+            // Calculate weighted correct answers using TESMER weights
+            // Alan 80%, GK 13.33%, Dil 6.67%
+            const weightedCorrect = (alanD * 0.80) + (gkD * 0.1333) + (dilD * 0.0667);
+            const maxWeighted = (100 * 0.80) + (20 * 0.1333) + (10 * 0.0667); // = 83.33
+            
+            // Calculate performance ratio (0-1)
+            const performanceRatio = weightedCorrect / maxWeighted;
 
-            // Average performance assumption: 0.60 (60% correct)
-            // Standard deviation: 0.15 (15%)
-            const avgPerf = 0.60;
-            const stdPerf = 0.15;
-
-            // Calculate standard scores (mean=50, sd=10) for each section
-            const alanZ = (alanPerformance - avgPerf) / stdPerf;
-            const gkZ = (gkPerformance - avgPerf) / stdPerf;
-            const dilZ = (dilPerformance - avgPerf) / stdPerf;
-
-            const alanStd = 50 + (alanZ * 10);
-            const gkStd = 50 + (gkZ * 10);
-            const dilStd = 50 + (dilZ * 10);
-
-            // CORRECT WEIGHTS: Alan 80%, GK 13.33%, Dil 6.67%
-            const weightedScore = (alanStd * 0.80) + (gkStd * 0.1333) + (dilStd * 0.0667);
-            const finalScore = Math.max(0, Math.min(100, weightedScore));
+            // Transform to TESMER score using realistic distribution
+            // Average student gets ~40% correct (not 60%!)
+            // Top students get 70-80% correct
+            // Perfect score (100%) should give ~95-100 points
+            
+            // Using sigmoid-like transformation for realistic score distribution
+            // This ensures: 0% → 10 puan, 40% → 50 puan, 100% → 95-100 puan
+            
+            let finalScore;
+            if (performanceRatio >= 0.95) {
+                // Perfect or near-perfect: 95-100 puan
+                finalScore = 95 + (performanceRatio - 0.95) * 100;
+            } else if (performanceRatio >= 0.80) {
+                // Excellent: 80-95 puan
+                finalScore = 80 + ((performanceRatio - 0.80) / 0.15) * 15;
+            } else if (performanceRatio >= 0.60) {
+                // Very good: 65-80 puan
+                finalScore = 65 + ((performanceRatio - 0.60) / 0.20) * 15;
+            } else if (performanceRatio >= 0.40) {
+                // Average: 50-65 puan
+                finalScore = 50 + ((performanceRatio - 0.40) / 0.20) * 15;
+            } else if (performanceRatio >= 0.20) {
+                // Below average: 30-50 puan
+                finalScore = 30 + ((performanceRatio - 0.20) / 0.20) * 20;
+            } else {
+                // Poor: 10-30 puan
+                finalScore = 10 + (performanceRatio / 0.20) * 20;
+            }
+            
+            finalScore = Math.max(0, Math.min(100, finalScore));
 
             // Calculate overall Z-score
             const zScore = (finalScore - 50) / 10;
